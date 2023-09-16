@@ -22,6 +22,9 @@ const HomeStyles = styled.div`
         font-size: 2rem;
         margin-bottom: 1rem;
     }
+    .congrats {
+        margin-top: 2rem;
+    }
     input {
         width: 100%;
         padding: 0.8rem;
@@ -99,26 +102,37 @@ export default function Home() {
         // Tworzymy kopię tekstu piosenki z zamienionymi słowami
         const censoredLyrics = lyrics.split(' ').map((word, index) => {
             if (randomIndexes.includes(index)) {
-                missingWordsCopy.push(word);
-                return '______';
+                if ( word.length > 1 && !/<[^>]+>/g.test(word) && !word.includes(',') && !/&[#0-9A-Za-z]+;/g.test(word) && !missingWordsCopy.includes(word)) {
+                    missingWordsCopy.push(word);
+                    return '______';
+                }
+                else{
+                    let indexOf = randomIndexes.indexOf(index);
+                    randomIndexes.splice(indexOf, 1);
+                }
             }
             return word;
         }).join(' ');
-  
+        console.log(missingWordsCopy)
         setAnswers(missingWordsCopy);
         setMissingWords(randomIndexes);
         setLyrics(censoredLyrics);
       }
   
-      const checkAnswer = (index, userAnswer, e) => {
+      const checkAnswer = (userAnswer, e) => {
         if(!userAnswer) return;
-        index = missingWords.indexOf(index);
-        const correctAnswer = answers[index];
-        if (userAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
-          e.style.border = '1px solid green';
-        } else {
-          e.style.border = '1px solid red';
-          console.log(`Odpowiedź nie jest poprawna. Prawidłowe słowo to: ${correctAnswer}`);
+        for (let index = 0; index < answers.length; index++) {
+            const answer = answers[index];
+            if (userAnswer.toLowerCase() === answer.toLowerCase()) {
+                e.value = '';
+                let lyricsCopy = lyrics.split(' ');
+                lyricsCopy[missingWords[index]] = answer;
+                answers.splice(index, 1);
+                missingWords.splice(index, 1);
+                setAnswers(answers);
+                setMissingWords(missingWords);
+                setLyrics(lyricsCopy.join(' '));
+            };
         }
       }
     return (
@@ -146,15 +160,22 @@ export default function Home() {
           <h2>Tekst Piosenki:</h2>
           <div dangerouslySetInnerHTML={{ __html: lyrics }} />
         </div>
-        {missingWords.map((index) => (
-          <div key={index}>
-            <label>Wprowadź brakujące słowo:</label>
+        {missingWords.length !== 0 && (
+          <div>
+            <label>Wprowadź brakujące słowa({missingWords.length}):</label>
             <input
               type="text"
-              onChange={(e) => checkAnswer(index, e.target.value, e.target)}
+              onChange={(e) => checkAnswer(e.target.value, e.target)}
             />
           </div>
-        ))}
+        )}
+        {
+            missingWords.length === 0 && (
+                <div className='congrats'>
+                    <h2>Gratulacje! Udało Ci się uzupełnić wszystkie luki!</h2>
+                </div>
+            )
+        }
       </HomeStyles>
     )
 }
