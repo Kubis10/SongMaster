@@ -1,3 +1,4 @@
+![logo](https://github.com/Kubis10/SongMaster/assets/50967586/3f751c26-3a3e-4870-bdad-08c8001f6081)
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
