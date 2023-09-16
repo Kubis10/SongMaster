@@ -1,0 +1,160 @@
+import React, { useState } from 'react';
+import styled from 'styled-components';
+
+const HomeStyles = styled.div`
+    padding: 2rem;
+    margin-bottom: 3rem;
+    background-color: var(--deep-dark);
+    color: var(--white);
+    min-height: calc(100vh - 6rem);
+    .container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        text-align: center;
+    }
+    h1 {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+    h2 {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+    }
+    input {
+        width: 100%;
+        padding: 0.8rem;
+        font-size: 1.2rem;
+        margin-bottom: 1rem;
+        background-color: var(--deep-dark);
+        color: var(--white);
+        border: 1px solid var(--gray-1);
+        outline-color: var(--accent);
+    }
+    button {
+        font-size: 1.2rem;
+        padding: 0.8rem 2rem;
+        border: 1px solid var(--accent);
+        background-color: transparent;
+        color: var(--accent);
+        cursor: pointer;
+        transition: all 0.3s ease-in-out;
+        &:hover {
+            background-color: var(--accent);
+            color: var(--white);
+        }
+    }
+    @media only screen and (max-width: 768px) {
+        padding: 1rem;
+    }
+`;
+
+export default function Home() {
+    const [songTitle, setSongTitle] = useState('');
+    const [artistName, setArtistName] = useState('');
+    const [lyrics, setLyrics] = useState('');
+    const [missingWords, setMissingWords] = useState([]);
+    const [answers, setAnswers] = useState([]);
+  
+    const fetchLyrics = async () => {
+      try {
+        const token = process.env.REACT_APP_GENIUS_TOKEN;
+        const response = await fetch(`https://api.genius.com/search?q=${songTitle} ${artistName}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const regex = /<div[^>]+data-lyrics-container="true"[^>]*>[\s\S]*?<\/div>/g;
+        const data = await response.json();
+        const songUrl = data.response.hits[0].result.path;
+        const songPage = await fetch(`https://genius.com${songUrl}`);
+        const html = await songPage.text();
+        let lyrics = html.match(regex);
+        let lyricsText = '';
+        for (let i = 0; i < lyrics.length; i++) {
+            lyrics[i] = lyrics[i].replace(/<(?!br\s*\/?)[^>]+>/g, '');
+            lyricsText += lyrics[i];
+            lyricsText += "<br>";
+        }
+        setLyrics(lyricsText);
+      } catch (error) {
+        console.error('Error:', error);
+        console.log('Nie udało się pobrać tekstów piosenek.');
+      }
+    }
+    const extractWords = () => {
+        const words = lyrics.split(' ');
+        const randomIndexes = [];
+        const missingWordsCopy = [];
+  
+        // Losujemy indeksy słów do wycięcia
+        while (randomIndexes.length < 10) {
+          const randomIndex = Math.floor(Math.random() * words.length);
+          if (!randomIndexes.includes(randomIndex)) {
+            randomIndexes.push(randomIndex);
+          }
+        }
+  
+        // Tworzymy kopię tekstu piosenki z zamienionymi słowami
+        const censoredLyrics = lyrics.split(' ').map((word, index) => {
+            if (randomIndexes.includes(index)) {
+                missingWordsCopy.push(word);
+                return '______';
+            }
+            return word;
+        }).join(' ');
+  
+        setAnswers(missingWordsCopy);
+        setMissingWords(randomIndexes);
+        setLyrics(censoredLyrics);
+      }
+  
+      const checkAnswer = (index, userAnswer, e) => {
+        if(!userAnswer) return;
+        index = missingWords.indexOf(index);
+        const correctAnswer = answers[index];
+        if (userAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
+          e.style.border = '1px solid green';
+        } else {
+          e.style.border = '1px solid red';
+          console.log(`Odpowiedź nie jest poprawna. Prawidłowe słowo to: ${correctAnswer}`);
+        }
+      }
+    return (
+        <HomeStyles>
+        <h1>Zgadnij tekst piosenki</h1>
+        <div>
+          <label>Tytuł Piosenki:</label>
+          <input
+            type="text"
+            value={songTitle}
+            onChange={(e) => setSongTitle(e.target.value)}
+          />
+        </div>
+        <div>
+          <label>Artysta:</label>
+          <input
+            type="text"
+            value={artistName}
+            onChange={(e) => setArtistName(e.target.value)}
+          />
+        </div>
+        <button onClick={fetchLyrics}>Pobierz Tekst</button>
+        <button onClick={extractWords}>Zacznij grę</button>
+        <div>
+          <h2>Tekst Piosenki:</h2>
+          <div dangerouslySetInnerHTML={{ __html: lyrics }} />
+        </div>
+        {missingWords.map((index) => (
+          <div key={index}>
+            <label>Wprowadź brakujące słowo:</label>
+            <input
+              type="text"
+              onChange={(e) => checkAnswer(index, e.target.value, e.target)}
+            />
+          </div>
+        ))}
+      </HomeStyles>
+    )
+}
