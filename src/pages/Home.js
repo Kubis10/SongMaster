@@ -59,6 +59,7 @@ export default function Home() {
     const [lyrics, setLyrics] = useState('');
     const [missingWords, setMissingWords] = useState([]);
     const [answers, setAnswers] = useState([]);
+    const [lang, setLang] = useState('');
   
     const fetchLyrics = async () => {
       try {
@@ -71,6 +72,16 @@ export default function Home() {
         const regex = /<div[^>]+data-lyrics-container="true"[^>]*>[\s\S]*?<\/div>/g;
         const data = await response.json();
         const songUrl = data.response.hits[0].result.path;
+        const songID = data.response.hits[0].result.id;
+        const response2 = await fetch(`https://api.genius.com/songs/${songID}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+        const data2 = await response2.json();
+        const language = data2.response.song.language;
+        setLang(language);
+        console.log(lang);
         const songPage = await fetch(`https://genius.com${songUrl}`);
         const html = await songPage.text();
         let lyrics = html.match(regex);
