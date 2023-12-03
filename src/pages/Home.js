@@ -114,7 +114,6 @@ export default function Home() {
       return word;
     }).join(' ');
     console.log(missingWordsCopy)
-    console.log(randomIndexes)
     setAnswers(missingWordsCopy);
     setMissingWords(randomIndexes);
     setLyrics(censoredLyrics);
